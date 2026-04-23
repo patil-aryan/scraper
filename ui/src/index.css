@@ -1,0 +1,473 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================================
+   Notion-inspired design tokens
+   ============================================================ */
+
+/* Light mode */
+:root {
+  --bg:           #ffffff;
+  --bg-subtle:    #fbfbfa;
+  --bg-card:      #ffffff;
+  --bg-hover:     rgba(55, 53, 47, 0.04);
+  --bg-active:    rgba(55, 53, 47, 0.08);
+  --bg-selected:  rgba(35, 131, 226, 0.07);
+
+  --border:       rgba(55, 53, 47, 0.09);
+  --border-strong:rgba(55, 53, 47, 0.16);
+
+  --text:         rgb(55, 53, 47);
+  --text-2:       rgba(55, 53, 47, 0.65);
+  --text-3:       rgba(55, 53, 47, 0.40);
+
+  --accent:       rgb(35, 131, 226);
+  --accent-bg:    rgba(35, 131, 226, 0.10);
+
+  --success:      rgb(0, 135, 107);
+  --success-bg:   rgba(0, 135, 107, 0.10);
+
+  --danger:       rgb(235, 87, 87);
+  --danger-bg:    rgba(235, 87, 87, 0.10);
+
+  --shadow-xs:    0 1px 2px rgba(15, 15, 15, 0.04);
+  --shadow-sm:    0 2px 4px rgba(15, 15, 15, 0.06), 0 1px 2px rgba(15, 15, 15, 0.04);
+  --shadow-md:    0 4px 12px rgba(15, 15, 15, 0.08), 0 2px 4px rgba(15, 15, 15, 0.04);
+  --shadow-lg:    0 8px 24px rgba(15, 15, 15, 0.12), 0 4px 8px rgba(15, 15, 15, 0.06);
+}
+
+/* Dark mode */
+.dark {
+  --bg:           #191919;
+  --bg-subtle:    #1f1f1f;
+  --bg-card:      #202020;
+  --bg-hover:     rgba(255, 255, 255, 0.055);
+  --bg-active:    rgba(255, 255, 255, 0.09);
+  --bg-selected:  rgba(35, 131, 226, 0.15);
+
+  --border:       rgba(255, 255, 255, 0.08);
+  --border-strong:rgba(255, 255, 255, 0.14);
+
+  --text:         rgba(255, 255, 255, 0.92);
+  --text-2:       rgba(255, 255, 255, 0.58);
+  --text-3:       rgba(255, 255, 255, 0.32);
+
+  --accent:       rgb(77, 161, 240);
+  --accent-bg:    rgba(77, 161, 240, 0.15);
+
+  --success:      rgb(77, 176, 150);
+  --success-bg:   rgba(77, 176, 150, 0.15);
+
+  --danger:       rgb(235, 110, 105);
+  --danger-bg:    rgba(235, 110, 105, 0.15);
+
+  --shadow-xs:    0 1px 2px rgba(0, 0, 0, 0.25);
+  --shadow-sm:    0 2px 4px rgba(0, 0, 0, 0.30), 0 1px 2px rgba(0, 0, 0, 0.20);
+  --shadow-md:    0 4px 12px rgba(0, 0, 0, 0.40), 0 2px 4px rgba(0, 0, 0, 0.20);
+  --shadow-lg:    0 8px 24px rgba(0, 0, 0, 0.50), 0 4px 8px rgba(0, 0, 0, 0.30);
+}
+
+/* ============================================================
+   Base
+   ============================================================ */
+
+* { box-sizing: border-box; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', ui-sans-serif, system-ui, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-feature-settings: 'cv11', 'ss01', 'ss03';
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+a { color: inherit; }
+
+/* ============================================================
+   Typography
+   ============================================================ */
+
+.title {
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: var(--text);
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: var(--text-2);
+  margin: 6px 0 0;
+}
+
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+}
+
+.mono {
+  font-family: 'SF Mono', ui-monospace, 'Cascadia Mono', Menlo, monospace;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
+
+::-webkit-scrollbar       { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: 5px;
+  border: 2px solid var(--bg);
+}
+::-webkit-scrollbar-thumb:hover { background: var(--text-3); }
+
+/* ============================================================
+   Utility color helpers
+   ============================================================ */
+
+.bg-page      { background: var(--bg); }
+.bg-subtle    { background: var(--bg-subtle); }
+.bg-card      { background: var(--bg-card); }
+.text-main    { color: var(--text); }
+.text-2       { color: var(--text-2); }
+.text-3       { color: var(--text-3); }
+.border-n     { border-color: var(--border); }
+.border-s     { border-color: var(--border-strong); }
+
+/* ============================================================
+   Cards & Surfaces
+   ============================================================ */
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.card-hover:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-sm);
+}
+
+.surface {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* ============================================================
+   Buttons
+   ============================================================ */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 11px;
+  height: 30px;
+  border-radius: 6px;
+  border: 1px solid var(--border-strong);
+  background: var(--bg);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.1s ease, border-color 0.1s ease, transform 0.05s ease;
+  white-space: nowrap;
+  user-select: none;
+}
+.btn:hover:not(:disabled)  { background: var(--bg-hover); }
+.btn:active:not(:disabled) { transform: scale(0.98); }
+.btn:disabled              { opacity: 0.4; cursor: not-allowed; }
+
+.btn-primary {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+.btn-primary:hover:not(:disabled) { opacity: 0.88; background: var(--text); }
+
+.btn-ghost {
+  border-color: transparent;
+  background: transparent;
+}
+.btn-ghost:hover:not(:disabled) { background: var(--bg-hover); }
+
+.btn-sm { height: 26px; padding: 4px 9px; font-size: 12px; }
+.btn-icon { width: 30px; padding: 0; }
+
+/* ============================================================
+   Inputs
+   ============================================================ */
+
+.input {
+  width: 100%;
+  height: 32px;
+  background: var(--bg);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 0 10px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, background 0.12s ease;
+}
+.input:hover   { border-color: var(--text-3); }
+.input:focus   { border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-bg); }
+.input::placeholder { color: var(--text-3); }
+
+select.input { cursor: pointer; padding-right: 28px;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b6b6b' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+}
+
+.input-sm { height: 28px; font-size: 12.5px; }
+
+/* ============================================================
+   Table
+   ============================================================ */
+
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.data-table thead {
+  background: var(--bg-subtle);
+}
+
+.data-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--bg-subtle);
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+  user-select: none;
+}
+
+.data-table th.sortable        { cursor: pointer; transition: color 0.1s ease; }
+.data-table th.sortable:hover  { color: var(--text-2); }
+.data-table th.sorted          { color: var(--text); }
+
+.data-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+  font-size: 13px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 240px;
+}
+
+.data-table tbody tr {
+  cursor: pointer;
+  transition: background-color 0.08s ease;
+}
+.data-table tbody tr:hover     { background: var(--bg-hover); }
+.data-table tbody tr.selected  { background: var(--bg-selected); }
+.data-table tbody tr.selected td:first-child {
+  box-shadow: inset 2px 0 0 var(--accent);
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+
+/* ============================================================
+   Badges
+   ============================================================ */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  height: 20px;
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  background: var(--bg-active);
+  color: var(--text-2);
+  border: 1px solid transparent;
+  white-space: nowrap;
+  line-height: 1;
+}
+
+.badge-accent  { background: var(--accent-bg);  color: var(--accent); }
+.badge-success { background: var(--success-bg); color: var(--success); }
+.badge-danger  { background: var(--danger-bg);  color: var(--danger); }
+
+/* Dot indicator */
+.dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  box-shadow: 0 0 0 2px color-mix(in srgb, currentColor 25%, transparent);
+}
+
+/* ============================================================
+   Toggle switch
+   ============================================================ */
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text-2);
+  user-select: none;
+}
+.toggle-track {
+  width: 28px;
+  height: 16px;
+  border-radius: 999px;
+  background: var(--bg-active);
+  border: 1px solid var(--border-strong);
+  position: relative;
+  flex-shrink: 0;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+.toggle-track.on {
+  background: var(--text);
+  border-color: var(--text);
+}
+.toggle-thumb {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--bg);
+  transition: transform 0.18s cubic-bezier(0.32, 0.72, 0.35, 1.1);
+  box-shadow: var(--shadow-xs);
+}
+.toggle-track.on .toggle-thumb { transform: translateX(12px); }
+
+/* ============================================================
+   Slide-over panel
+   ============================================================ */
+
+.slideover {
+  position: fixed;
+  top: 0; right: 0; bottom: 0;
+  width: 520px;
+  max-width: 95vw;
+  background: var(--bg);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-lg);
+  z-index: 50;
+  overflow-y: auto;
+  transform: translateX(100%);
+  transition: transform 0.25s cubic-bezier(0.32, 0.72, 0.35, 1);
+  display: flex;
+  flex-direction: column;
+}
+.slideover.open { transform: translateX(0); }
+
+.slideover-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 15, 0.20);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
+  z-index: 49;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+.slideover-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* ============================================================
+   Animations
+   ============================================================ */
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.5; }
+}
+
+.pulse { animation: pulse-soft 2s ease-in-out infinite; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fade-in { animation: fade-in 0.25s ease-out; }
+
+/* ============================================================
+   Divider
+   ============================================================ */
+
+.divider {
+  height: 1px;
+  background: var(--border);
+  margin: 16px 0;
+}
+
+/* ============================================================
+   Kbd
+   ============================================================ */
+
+kbd {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 5px;
+  height: 18px;
+  border: 1px solid var(--border-strong);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  font-family: 'SF Mono', ui-monospace, Menlo, monospace;
+  font-size: 11px;
+  color: var(--text-2);
+  background: var(--bg-subtle);
+  line-height: 1;
+}
+
+/* ============================================================
+   Focus ring
+   ============================================================ */
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}

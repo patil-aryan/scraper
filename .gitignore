@@ -1,0 +1,181 @@
+# ──────────────────────────────────────────────────────────────────────────
+# Secrets — NEVER commit these
+# ──────────────────────────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+auth.txt
+**/auth.txt
+*.ovpn
+*.conf
+secrets/
+tokens.txt
+openvpnconfig/
+
+# ──────────────────────────────────────────────────────────────────────────
+# Project data — large + regenerable
+# ──────────────────────────────────────────────────────────────────────────
+creators.db
+creators.db-journal
+creators.db-wal
+creators.db-shm
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+creators_filtered.csv
+exports/
+backups/
+
+# ──────────────────────────────────────────────────────────────────────────
+# Logs
+# ──────────────────────────────────────────────────────────────────────────
+*.log
+logs/
+scraper.log
+enrich.log
+api.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# ──────────────────────────────────────────────────────────────────────────
+# Python
+# ──────────────────────────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+.eggs/
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.manifest
+*.spec
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Virtual envs
+.venv/
+venv/
+env/
+ENV/
+.python-version
+
+# Test / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+coverage.xml
+*.cover
+.hypothesis/
+nosetests.xml
+
+# Type checkers
+.mypy_cache/
+.dmypy.json
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ──────────────────────────────────────────────────────────────────────────
+# Node / Vite / React (ui/)
+# ──────────────────────────────────────────────────────────────────────────
+node_modules/
+ui/node_modules/
+ui/dist/
+ui/build/
+ui/.vite/
+ui/coverage/
+.pnp
+.pnp.js
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.yarnclean
+.next/
+.nuxt/
+.cache/
+.parcel-cache/
+
+# Vite
+*.local
+.vite/
+
+# ──────────────────────────────────────────────────────────────────────────
+# Playwright / browser data
+# ──────────────────────────────────────────────────────────────────────────
+playwright-report/
+test-results/
+.playwright/
+ms-playwright/
+
+# ──────────────────────────────────────────────────────────────────────────
+# IDE / editor
+# ──────────────────────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.cursor/
+.cursorignore
+.history/
+.claude/
+
+# ──────────────────────────────────────────────────────────────────────────
+# OS junk
+# ──────────────────────────────────────────────────────────────────────────
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+.directory
+.Trash-*
+
+# ──────────────────────────────────────────────────────────────────────────
+# Misc
+# ──────────────────────────────────────────────────────────────────────────
+*.tmp
+*.bak
+*.old
+*.orig
+tmp/
+temp/
+.tmp/
