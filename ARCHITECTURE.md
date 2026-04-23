@@ -380,13 +380,51 @@ Same crypto family as TikTok. Often more actively maintained (Douyin is bigger i
 
 ### Total cost projections
 
-| Volume | Proxy plan | Total cost |
-|--------|-----------|------------|
-| 100k profiles | Webshare $5 trial | ~$5 |
-| 1M profiles | Webshare residential 25GB | ~$35-90 |
-| 10M profiles | Webshare residential 250GB | ~$350-900 |
+| Volume | Proxy plan | Total cost | Per 1k profiles |
+|--------|-----------|------------|-----------------|
+| Test (5-10k) | Webshare free 10 proxies | **$0** | $0 |
+| 100k profiles | Webshare $5 trial (3.5GB) | **~$5** | $0.05 |
+| 500k profiles | IPRoyal $7 starter | **~$7** | $0.014 |
+| 1M profiles/mo | Webshare residential 25GB | **$30-90** | $0.03-0.09 |
+| 5M profiles/mo | Webshare residential 100GB | **~$140** | $0.028 |
+| 10M profiles/mo | Webshare residential 250GB OR 1-2 mobile proxies | **$350-500** | $0.035-0.05 |
 
-Compare to paid APIs: Apify charges $1/1k = $10,000 for 10M. We're saving **~10-20x** at scale.
+### Cost vs paid API alternatives
+
+| Source | Per 1k profiles | Cost for 1M |
+|--------|-----------------|-------------|
+| **Master scraper (this plan)** | **$0.03-0.09** | **$30-90** |
+| TikHub.io API | $0.50-1.00 | $500-1,000 |
+| Apify dltik scraper | $1.00 | $1,000 |
+| ScrapeCreators | $2.00 | $2,000 |
+| Bright Data Dataset | $2.50 | $2,500 |
+| Apify clockworks | $4.00 | $4,000 |
+
+**Master scraper is 10-100x cheaper per profile** at any volume above 100k. The bigger the scale, the more it saves.
+
+### What you actually pay
+
+**One-time:**
+- $0 — all software is open source (Apache-2.0 / MIT)
+- $0 — your existing hardware
+- ~6-10 hours of build time
+
+**Ongoing:**
+- $0-30/mo for casual use (10-100k/month)
+- $30-100/mo for serious use (1-5M/month)
+- $100-500/mo for industrial use (5-50M/month)
+- ~4-8 hrs/month maintenance (occasional "signing broke" emergencies, ~1-2 days when algorithm rotates)
+
+### Year 1 recommendation
+
+| Stage | Plan | Spend |
+|-------|------|-------|
+| Week 1 — prove it works | Webshare $5 trial | $5 |
+| Month 1-12 — production | Webshare residential $30/mo | $360 |
+| **Total year 1 spend** | | **~$365** |
+| **Profiles scraped** | | **~12M** |
+
+Compare: same 12M profiles via Apify = **$12,000**. Savings = **~$11,635/year**.
 
 ---
 
