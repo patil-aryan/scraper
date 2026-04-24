@@ -179,3 +179,10 @@ $RECYCLE.BIN/
 tmp/
 temp/
 .tmp/
+
+# Snapshots / backups of the main DB (never commit)
+creators_v1*.db
+creators_v2*.db
+creators_*_full*.db
+creators_backup*.db
+*_full_*.db

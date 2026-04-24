@@ -30,36 +30,60 @@ export default function CreatorDetail({ creator, onClose }) {
 
   const open = !!creator
 
+  // Lock body scroll while modal is open
+  useEffect(() => {
+    if (open) {
+      const prev = document.body.style.overflow
+      document.body.style.overflow = 'hidden'
+      return () => { document.body.style.overflow = prev }
+    }
+  }, [open])
+
   return (
     <>
-      <div className={`slideover-backdrop${open ? ' open' : ''}`} onClick={onClose} />
-
-      <aside className={`slideover${open ? ' open' : ''}`} aria-hidden={!open}>
-        {creator && (
-          <>
-            <Header creator={creator} onClose={onClose} />
-
-            {loading ? (
-              <div style={{
-                padding: 60, textAlign: 'center', color: 'var(--text-3)', fontSize: 13,
-              }}>
-                <div className="pulse" style={{
-                  width: 6, height: 6, borderRadius: '50%',
-                  background: 'var(--text-3)', display: 'inline-block',
-                  marginRight: 8,
-                }} />
-                Loading details…
+      <div
+        className={`modal-backdrop${open ? ' open' : ''}`}
+        onClick={onClose}
+        aria-hidden={!open}
+      />
+      <div
+        className={`modal-container${open ? ' open' : ''}`}
+        onClick={onClose}
+        aria-hidden={!open}
+      >
+        <div
+          className="modal-panel"
+          role="dialog"
+          aria-modal="true"
+          onClick={e => e.stopPropagation()}
+        >
+          {creator && (
+            <>
+              <Header creator={creator} onClose={onClose} />
+              <div className="modal-scroll">
+                {loading ? (
+                  <div style={{
+                    padding: 80, textAlign: 'center', color: 'var(--text-3)', fontSize: 13,
+                  }}>
+                    <div className="pulse" style={{
+                      width: 6, height: 6, borderRadius: '50%',
+                      background: 'var(--text-3)', display: 'inline-block',
+                      marginRight: 8,
+                    }} />
+                    Loading details…
+                  </div>
+                ) : detail ? (
+                  <Body creator={detail.creator} videos={detail.videos} enriched={detail.enriched} />
+                ) : (
+                  <div style={{ padding: 40, color: 'var(--text-3)', fontSize: 13, textAlign: 'center' }}>
+                    Could not load details.
+                  </div>
+                )}
               </div>
-            ) : detail ? (
-              <Body creator={detail.creator} videos={detail.videos} enriched={detail.enriched} />
-            ) : (
-              <div style={{ padding: 28, color: 'var(--text-3)', fontSize: 13 }}>
-                Could not load details.
-              </div>
-            )}
-          </>
-        )}
-      </aside>
+            </>
+          )}
+        </div>
+      </div>
     </>
   )
 }
@@ -69,48 +93,62 @@ export default function CreatorDetail({ creator, onClose }) {
 function Header({ creator, onClose }) {
   return (
     <div style={{
-      padding: '18px 22px',
-      borderBottom: '1px solid var(--border)',
-      display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between',
-      gap: 14,
-      background: 'var(--bg)',
+      padding: '28px 32px 22px',
+      borderBottom: '1px solid var(--rule-ink)',
+      background: 'var(--panel-2)',
       position: 'sticky', top: 0, zIndex: 2,
     }}>
-      <div style={{ display: 'flex', gap: 12, alignItems: 'flex-start', flex: 1, minWidth: 0 }}>
-        <Avatar size={44} name={creator.nickname || creator.unique_id} />
+      {/* Top dateline row */}
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 18,
+      }}>
+        <div className="eyebrow eyebrow-accent">
+          ⸺ Creator Profile · Feature ⸺
+        </div>
+        <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+          <a
+            href={`https://tiktok.com/@${creator.unique_id}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn btn-sm"
+          >
+            <ExternalLink size={12} /> View on TikTok
+          </a>
+          <button className="btn btn-sm btn-icon btn-ghost" onClick={onClose} title="Close (Esc)">
+            <X size={14} />
+          </button>
+        </div>
+      </div>
+
+      {/* Name + meta row */}
+      <div style={{ display: 'flex', gap: 18, alignItems: 'center', flex: 1, minWidth: 0 }}>
+        <Avatar size={64} name={creator.nickname || creator.unique_id} />
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <span style={{ fontWeight: 600, fontSize: 16, color: 'var(--text)', letterSpacing: '-0.01em' }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+            <span className="serif" style={{
+              fontSize: 38,
+              lineHeight: 1,
+              letterSpacing: '-0.025em',
+              color: 'var(--ink)',
+            }}>
               @{creator.unique_id}
             </span>
             {creator.verified ? (
-              <BadgeCheck size={15} style={{ color: 'var(--accent)', flexShrink: 0 }} />
+              <BadgeCheck size={18} style={{ color: 'var(--accent)', flexShrink: 0 }} />
             ) : null}
           </div>
-          {creator.nickname && (
-            <div style={{ fontSize: 13, color: 'var(--text-2)', marginTop: 1 }}>
-              {creator.nickname}
-            </div>
-          )}
-          {creator.region && (
-            <div style={{ fontSize: 12, color: 'var(--text-3)', marginTop: 3 }}>
-              {creator.region}
-            </div>
-          )}
+          <div style={{
+            display: 'flex', alignItems: 'center', gap: 10, marginTop: 8,
+            fontFamily: "'Geist Mono', monospace",
+            fontSize: 11, letterSpacing: '0.08em',
+            color: 'var(--ink-3)', textTransform: 'uppercase',
+          }}>
+            {creator.nickname && <span>{creator.nickname}</span>}
+            {creator.nickname && creator.region && <span>·</span>}
+            {creator.region && <span>{creator.region}</span>}
+          </div>
         </div>
-      </div>
-      <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-        <a
-          href={`https://tiktok.com/@${creator.unique_id}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="btn btn-sm"
-        >
-          <ExternalLink size={12} /> Open
-        </a>
-        <button className="btn btn-sm btn-icon" onClick={onClose} title="Close (Esc)">
-          <X size={13} />
-        </button>
       </div>
     </div>
   )
@@ -128,24 +166,12 @@ function Body({ creator, videos, enriched }) {
   const postsPerWeek = enriched?.posts_per_week ?? null
 
   return (
-    <div style={{ padding: '22px', display: 'flex', flexDirection: 'column', gap: 24 }}>
-      {/* Bio */}
+    <div style={{ padding: '28px 32px 32px', display: 'flex', flexDirection: 'column', gap: 30 }}>
+      {/* Pull-quote bio (editorial, hanging quotes) */}
       {creator.signature && (
-        <div
-          style={{
-            fontSize: 13,
-            color: 'var(--text)',
-            lineHeight: 1.65,
-            padding: '14px 16px',
-            background: 'var(--bg-subtle)',
-            borderRadius: 8,
-            border: '1px solid var(--border)',
-            whiteSpace: 'pre-wrap',
-            wordBreak: 'break-word',
-          }}
-        >
-          {creator.signature}
-        </div>
+        <blockquote className="pull-quote" style={{ margin: 0 }}>
+          &ldquo;{creator.signature}&rdquo;
+        </blockquote>
       )}
 
       {/* Profile summary */}
@@ -242,11 +268,9 @@ function StatGrid({ children }) {
     <div style={{
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
-      gap: 1,
-      background: 'var(--border)',
-      borderRadius: 8,
+      gap: 0,
+      border: '1px solid var(--rule-ink)',
       overflow: 'hidden',
-      border: '1px solid var(--border)',
     }}>
       {children}
     </div>
@@ -254,23 +278,32 @@ function StatGrid({ children }) {
 }
 
 function Stat({ label, value, size, highlight }) {
-  const fontSize = size === 'lg' ? 20 : 15
+  const isLg = size === 'lg'
   return (
     <div style={{
-      padding: '12px 14px',
-      background: highlight ? 'var(--bg-subtle)' : 'var(--bg-card)',
+      padding: isLg ? '18px 18px 16px' : '14px 16px',
+      background: highlight ? 'var(--bg-selected)' : 'var(--panel-2)',
+      borderRight: '1px solid var(--rule)',
+      borderBottom: '1px solid var(--rule)',
+      position: 'relative',
     }}>
-      <div style={{ fontSize: 11, color: 'var(--text-3)', marginBottom: 3, letterSpacing: '0.01em' }}>
+      {highlight && (
+        <span style={{
+          position: 'absolute', top: 0, left: 0, bottom: 0,
+          width: 2, background: 'var(--accent)',
+        }} />
+      )}
+      <div className="eyebrow" style={{ marginBottom: isLg ? 8 : 4 }}>
         {label}
       </div>
       <div
-        className="mono"
+        className={isLg ? 'serif' : 'mono'}
         style={{
-          fontSize,
-          fontWeight: highlight ? 600 : 500,
-          color: 'var(--text)',
-          letterSpacing: '-0.01em',
-          lineHeight: 1.1,
+          fontSize: isLg ? 30 : 15,
+          fontWeight: isLg ? 400 : 500,
+          color: highlight ? 'var(--accent)' : 'var(--ink)',
+          letterSpacing: isLg ? '-0.02em' : '-0.005em',
+          lineHeight: 1,
         }}
       >
         {value}

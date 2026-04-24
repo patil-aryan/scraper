@@ -45,29 +45,46 @@ except ImportError:
     print("TikTokApi not installed. Run: pip install -r requirements.txt")
     sys.exit(1)
 
-import vpn_rotate
-
 load_dotenv()
 
 MS_TOKEN = os.getenv("MS_TOKEN", "").strip()
-PROACTIVE_ROTATION_EVERY = int(os.getenv("PROACTIVE_ROTATION_EVERY", "100"))  # creators not hashtags
 DB_PATH = Path(__file__).parent / "creators.db"
 LOG_PATH = Path(__file__).parent / "enrich.log"
 
-# --- Tuning ---
-NUM_SESSIONS = 3
-MAX_VIDEOS_PER_CREATOR = 50      # TikTok paginates; 50 gives reliable medians
-REQUEST_DELAY = (1.5, 3.0)
-CREATOR_COOLDOWN = (2.0, 5.0)    # between creators on same session
+# Residential proxy (IPRoyal). See scraper.py for .env format.
+PROXY_SERVER = os.getenv("PROXY_SERVER", "").strip()
+PROXY_USER = os.getenv("PROXY_USER", "").strip()
+PROXY_PASS = os.getenv("PROXY_PASS", "").strip()
+
+
+def _build_proxy_spec(session_id: int) -> dict | None:
+    if not PROXY_SERVER:
+        return None
+    import re as _re
+    user = PROXY_USER
+    password = PROXY_PASS
+    sticky_key = f"session-e{session_id}{int(time.time())%100000}"
+    if "session-" in password:
+        password = _re.sub(r"session-[a-zA-Z0-9]+", sticky_key, password)
+    elif "session-" in user:
+        user = _re.sub(r"session-[a-zA-Z0-9]+", sticky_key, user)
+    return {"server": PROXY_SERVER, "username": user, "password": password}
+
+
+# --- Tuning for M4 Pro 24GB + residential proxies ---
+NUM_SESSIONS = int(os.getenv("ENRICH_NUM_SESSIONS", "6"))
+MAX_VIDEOS_PER_CREATOR = 50           # TikTok paginates; 50 gives reliable medians
+CREATORS_PER_BROWSER = int(os.getenv("CREATORS_PER_BROWSER", "25"))  # persist API across N creators
+REQUEST_DELAY = (0.3, 0.8)
+CREATOR_COOLDOWN = (0.5, 2.0)         # between creators on same session
 EMPTY_THRESHOLD = 3
-MAX_VPN_ROTATIONS = 30
-CREATOR_TIMEOUT = 90             # max seconds per creator
+CREATOR_TIMEOUT = 90                  # max seconds per creator
 HEARTBEAT_INTERVAL = 300
 MAX_CONSECUTIVE_FAILURES = 5
 
-# Pre-filter candidates before enrichment (save time by skipping obvious misses)
-PREFILTER_FOLLOWER_MIN = 500
-PREFILTER_FOLLOWER_MAX = 1_000_000
+# Pre-filter candidates before enrichment (user's target: 10k-2M followers)
+PREFILTER_FOLLOWER_MIN = int(os.getenv("FOLLOWER_MIN", "10000"))
+PREFILTER_FOLLOWER_MAX = int(os.getenv("FOLLOWER_MAX", "2000000"))
 
 logging.basicConfig(
     level=logging.INFO,
@@ -120,6 +137,9 @@ def db():
     conn.execute("PRAGMA journal_mode=WAL")
     conn.execute("PRAGMA synchronous=NORMAL")
     conn.execute("PRAGMA busy_timeout=30000")
+    conn.execute("PRAGMA cache_size=-200000")
+    conn.execute("PRAGMA mmap_size=8000000000")
+    conn.execute("PRAGMA temp_store=MEMORY")
     try:
         yield conn
         conn.commit()
@@ -330,93 +350,104 @@ async def enrich_creator(api, sec_uid, unique_id, session_id):
     return videos, False
 
 
-async def worker(session_id, queue, rotation_event, state):
+async def _teardown_api(api):
+    if api is None:
+        return
+    try:
+        await asyncio.shield(
+            asyncio.wait_for(api.__aexit__(None, None, None), timeout=15)
+        )
+    except Exception:
+        pass
+
+
+async def _spin_up_api(session_id):
+    api = TikTokApi()
+    await api.__aenter__()
+    proxy_spec = _build_proxy_spec(session_id)
+    kwargs = dict(
+        ms_tokens=[MS_TOKEN] if MS_TOKEN else None,
+        num_sessions=1,
+        sleep_after=3,
+        headless=True,
+        browser=os.getenv("TIKTOK_BROWSER", "chromium"),
+        timeout=90000,
+        suppress_resource_load_types=["image", "media", "font", "stylesheet"],
+    )
+    if proxy_spec:
+        kwargs["proxies"] = [proxy_spec]
+    await api.create_sessions(**kwargs)
+    return api
+
+
+async def worker(session_id, queue, state):
+    """Persistent-API enrichment worker. Browser reused across CREATORS_PER_BROWSER creators."""
     failures = 0
-    while True:
-        if rotation_event.is_set():
-            while rotation_event.is_set():
-                await asyncio.sleep(2)
+    api = None
+    creators_on_api = 0
 
-        try:
-            sec_uid, unique_id = queue.get_nowait()
-        except asyncio.QueueEmpty:
-            log.info(f"[s{session_id}] queue empty, exiting")
-            return
+    try:
+        while True:
+            try:
+                sec_uid, unique_id = queue.get_nowait()
+            except asyncio.QueueEmpty:
+                log.info(f"[s{session_id}] queue empty, exiting")
+                return
 
-        # Proactive rotation every N creators
-        if PROACTIVE_ROTATION_EVERY > 0:
-            state["done"] += 1
-            if state["done"] % PROACTIVE_ROTATION_EVERY == 0:
-                if not rotation_event.is_set():
-                    rotation_event.set()
-                    state["rotations"] += 1
-                    log.info(f"[s{session_id}] proactive rotation #{state['rotations']}")
-                    try:
-                        await asyncio.to_thread(vpn_rotate.rotate)
-                    except Exception as e:
-                        log.error(f"rotation failed: {e}")
-                    await asyncio.sleep(5)
-                    rotation_event.clear()
+            if api is None or creators_on_api >= CREATORS_PER_BROWSER:
+                if api is not None:
+                    log.info(f"[s{session_id}] recycling browser after {creators_on_api} creators")
+                    await _teardown_api(api)
+                    api = None
+                try:
+                    api = await _spin_up_api(session_id)
+                    creators_on_api = 0
+                except Exception as e:
+                    log.error(f"[s{session_id}] session init failed: {e}")
+                    await queue.put((sec_uid, unique_id))
+                    failures += 1
+                    await asyncio.sleep(min(30 * failures, 180))
+                    if failures >= MAX_CONSECUTIVE_FAILURES:
+                        return
+                    continue
 
-        video_count, flagged = 0, False
-        try:
-            async with asyncio.timeout(CREATOR_TIMEOUT + 30):
-                async with TikTokApi() as api:
-                    try:
-                        await api.create_sessions(
-                            ms_tokens=[MS_TOKEN] if MS_TOKEN else None,
-                            num_sessions=1,
-                            sleep_after=3,
-                            headless=True,
-                            browser=os.getenv("TIKTOK_BROWSER", "chromium"),
-                        )
-                    except Exception as e:
-                        log.error(f"[s{session_id}] session init failed: {e}")
-                        await queue.put((sec_uid, unique_id))
-                        failures += 1
-                        await asyncio.sleep(min(30 * failures, 180))
-                        if failures >= MAX_CONSECUTIVE_FAILURES:
-                            return
-                        continue
+            video_count, flagged = 0, False
+            try:
+                async with asyncio.timeout(CREATOR_TIMEOUT + 30):
                     videos, flagged = await enrich_creator(api, sec_uid, unique_id, session_id)
                     video_count = len(videos)
-                    log.info(
-                        f"[s{session_id}] @{unique_id}: {video_count} vids "
-                        f"(progress: {state['done']:,})"
-                    )
-        except asyncio.TimeoutError:
-            log.error(f"[s{session_id}] HARD timeout on @{unique_id}")
-            mark_candidate(sec_uid, "failed", error="hard_timeout")
-            flagged = True
-        except Exception as e:
-            log.error(f"[s{session_id}] worker error on @{unique_id}: {e}")
-            mark_candidate(sec_uid, "failed", error=f"worker:{type(e).__name__}")
-            failures += 1
+                    state["done"] += 1
+                    creators_on_api += 1
+                    if state["done"] % 50 == 0:
+                        log.info(f"[s{session_id}] @{unique_id}: {video_count} vids (progress: {state['done']:,})")
+            except asyncio.TimeoutError:
+                log.error(f"[s{session_id}] HARD timeout on @{unique_id}")
+                mark_candidate(sec_uid, "failed", error="hard_timeout")
+                flagged = True
+            except Exception as e:
+                log.error(f"[s{session_id}] worker error on @{unique_id}: {e}")
+                mark_candidate(sec_uid, "failed", error=f"worker:{type(e).__name__}")
+                failures += 1
+                if failures >= MAX_CONSECUTIVE_FAILURES:
+                    return
+                continue
+
+            if video_count > 0:
+                failures = 0
+            else:
+                failures += 1
+
+            if flagged and api is not None:
+                log.info(f"[s{session_id}] tearing down browser after flag")
+                await _teardown_api(api)
+                api = None
+
             if failures >= MAX_CONSECUTIVE_FAILURES:
                 return
-            continue
 
-        if video_count > 0:
-            failures = 0
-        else:
-            failures += 1
-
-        if flagged:
-            if not rotation_event.is_set() and state["rotations"] < MAX_VPN_ROTATIONS:
-                rotation_event.set()
-                state["rotations"] += 1
-                log.warning(f"[s{session_id}] REACTIVE rotation #{state['rotations']}")
-                try:
-                    await asyncio.to_thread(vpn_rotate.rotate)
-                except Exception as e:
-                    log.error(f"rotation failed: {e}")
-                await asyncio.sleep(5)
-                rotation_event.clear()
-
-        if failures >= MAX_CONSECUTIVE_FAILURES:
-            return
-
-        await asyncio.sleep(random.uniform(*CREATOR_COOLDOWN))
+            await asyncio.sleep(random.uniform(*CREATOR_COOLDOWN))
+    finally:
+        await _teardown_api(api)
 
 
 async def heartbeat(state, stop_event):
@@ -433,8 +464,7 @@ async def heartbeat(state, stop_event):
                     "SELECT COUNT(*) FROM enriched_stats WHERE status='ok'"
                 ).fetchone()[0]
             log.info(
-                f"[♡] enriched={enriched:,} done={done:,} "
-                f"pending={pending:,} rotations={state['rotations']}"
+                f"[♡] enriched={enriched:,} done={done:,} pending={pending:,}"
             )
         except Exception as e:
             log.error(f"heartbeat: {e}")
@@ -450,6 +480,13 @@ async def main():
     if not MS_TOKEN or MS_TOKEN == "paste_your_ms_token_here":
         log.warning("MS_TOKEN not set — reliability drops")
 
+    if PROXY_SERVER:
+        log.info(f"✓ Residential proxy: {PROXY_SERVER}")
+    else:
+        log.warning("⚠ PROXY_SERVER not set — enrichment from home IP. TikTok will throttle fast.")
+
+    log.info(f"Follower prefilter: {PREFILTER_FOLLOWER_MIN:,}–{PREFILTER_FOLLOWER_MAX:,}")
+
     candidates = load_candidates()
     if not candidates:
         log.info("No candidates to enrich. Done!")
@@ -459,9 +496,8 @@ async def main():
     for c in candidates:
         queue.put_nowait(c)
 
-    rotation_event = asyncio.Event()
     stop_event = asyncio.Event()
-    state = {"done": 0, "rotations": 0}
+    state = {"done": 0}
 
     loop = asyncio.get_running_loop()
     for sig in (signal.SIGINT, signal.SIGTERM):
@@ -469,7 +505,7 @@ async def main():
             loop.add_signal_handler(sig, stop_event.set)
 
     workers = [
-        asyncio.create_task(worker(i, queue, rotation_event, state))
+        asyncio.create_task(worker(i, queue, state))
         for i in range(NUM_SESSIONS)
     ]
     hb = asyncio.create_task(heartbeat(state, stop_event))
@@ -495,7 +531,7 @@ async def main():
     finally:
         stop_event.set()
         hb.cancel()
-        with contextlib.suppress(Exception):
+        with contextlib.suppress(asyncio.CancelledError, Exception):
             await hb
 
     elapsed = time.time() - start
@@ -515,7 +551,6 @@ async def main():
     log.info(f"ENRICHMENT COMPLETE: {elapsed/3600:.2f}h")
     log.info(f"  Creators enriched: {enriched:,}")
     log.info(f"  Avg videos/creator: {avg_videos:.1f}")
-    log.info(f"  Rotations:         {state['rotations']}")
     log.info("=" * 60)
 
 

@@ -566,6 +566,118 @@ def export_creators(
     )
 
 
+# ── /api/follower_distribution ─────────────────────────────────────────────
+# Creator count in each follower band + contact coverage per band.
+# This is the discovery-focused breakdown (vs /view_distribution which is video performance).
+
+FOLLOWER_BANDS = [
+    ("Under 10k",  0,         10_000),
+    ("10k–50k",    10_000,    50_000),
+    ("50k–100k",   50_000,    100_000),
+    ("100k–500k",  100_000,   500_000),
+    ("500k–1M",    500_000,   1_000_000),
+    ("1M–5M",      1_000_000, 5_000_000),
+    ("5M+",        5_000_000, 10_000_000_000),
+]
+
+
+@app.get("/api/follower_distribution")
+def get_follower_distribution():
+    if not db_exists():
+        return []
+    conn = get_db()
+    try:
+        out = []
+        for name, lo, hi in FOLLOWER_BANDS:
+            row = conn.execute(
+                """
+                SELECT
+                    COUNT(*)                                                         AS total,
+                    SUM(CASE WHEN email     != '' AND email     IS NOT NULL THEN 1 ELSE 0 END) AS with_email,
+                    SUM(CASE WHEN instagram != '' AND instagram IS NOT NULL THEN 1 ELSE 0 END) AS with_ig,
+                    SUM(CASE WHEN
+                        (email     != '' AND email     IS NOT NULL) OR
+                        (instagram != '' AND instagram IS NOT NULL) OR
+                        (youtube   != '' AND youtube   IS NOT NULL) OR
+                        (twitter   != '' AND twitter   IS NOT NULL)
+                        THEN 1 ELSE 0 END) AS with_any_contact
+                FROM creators
+                WHERE follower_count >= ? AND follower_count < ?
+                """,
+                (lo, hi),
+            ).fetchone()
+            total = row["total"] or 0
+            with_any = row["with_any_contact"] or 0
+            out.append({
+                "band": name,
+                "lo": lo,
+                "hi": hi,
+                "total": total,
+                "with_email": row["with_email"] or 0,
+                "with_instagram": row["with_ig"] or 0,
+                "with_any_contact": with_any,
+                "coverage_pct": round(100 * with_any / total, 1) if total else 0,
+            })
+        return out
+    finally:
+        conn.close()
+
+
+# ── /api/summary ───────────────────────────────────────────────────────────
+# High-level highlights tuned for outreach use case — target band + contactable.
+
+@app.get("/api/summary")
+def get_summary():
+    if not db_exists():
+        return {"error": "creators.db not found"}
+    conn = get_db()
+    try:
+        def cnt(sql, params=()):
+            return conn.execute(sql, params).fetchone()[0]
+
+        total = cnt("SELECT COUNT(*) FROM creators")
+        contact_pred = (
+            "((email IS NOT NULL AND email != '') OR "
+            "(instagram IS NOT NULL AND instagram != '') OR "
+            "(youtube IS NOT NULL AND youtube != '') OR "
+            "(twitter IS NOT NULL AND twitter != ''))"
+        )
+        in_range = cnt(
+            "SELECT COUNT(*) FROM creators WHERE follower_count BETWEEN 10000 AND 1000000"
+        )
+        in_range_contact = cnt(
+            f"SELECT COUNT(*) FROM creators WHERE follower_count BETWEEN 10000 AND 1000000 AND {contact_pred}"
+        )
+        mid_tier = cnt(
+            "SELECT COUNT(*) FROM creators WHERE follower_count BETWEEN 100000 AND 1000000"
+        )
+        mid_tier_contact = cnt(
+            f"SELECT COUNT(*) FROM creators WHERE follower_count BETWEEN 100000 AND 1000000 AND {contact_pred}"
+        )
+        verified_in_range = cnt(
+            "SELECT COUNT(*) FROM creators WHERE follower_count BETWEEN 10000 AND 1000000 AND verified=1"
+        )
+        with_region = cnt(
+            "SELECT COUNT(*) FROM creators WHERE region IS NOT NULL AND region != ''"
+        )
+        enriched = 0
+        if has_table(conn, "enriched_stats"):
+            enriched = cnt("SELECT COUNT(*) FROM enriched_stats WHERE status='ok'")
+
+        return {
+            "total_creators": total,
+            "in_range_10k_1m": in_range,
+            "in_range_with_contact": in_range_contact,
+            "mid_tier_100k_1m": mid_tier,
+            "mid_tier_with_contact": mid_tier_contact,
+            "verified_in_range": verified_in_range,
+            "with_region": with_region,
+            "enriched": enriched,
+        }
+    finally:
+        conn.close()
+
+
 # ── /api/regions ───────────────────────────────────────────────────────────
 
 @app.get("/api/regions")

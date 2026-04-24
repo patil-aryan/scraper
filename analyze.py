@@ -27,18 +27,17 @@ DB_PATH = Path(__file__).parent / "creators.db"
 OUT_CSV = Path(__file__).parent / "creators_filtered.csv"
 
 # ---- tuning ----
-MEDIAN_MIN = 10_000
-MEDIAN_MAX = 100_000
+MEDIAN_MIN = 5_000
+MEDIAN_MAX = 5_000_000
 MIN_VIDEOS = 3
-FOLLOWER_MIN = 1_000
-FOLLOWER_MAX = 500_000
-MIN_ER = 0.02
+FOLLOWER_MIN = 10_000       # user target band
+FOLLOWER_MAX = 2_000_000
+MIN_ER = 0.01
+# Region filter: empty = all; otherwise comma-separated ISO codes e.g. "US,CA,GB"
+REGION_FILTER = ""
 # Set to True to only export creators with an email (tighter outreach list)
 EMAIL_ONLY = False
 # Use enriched_stats table (from enrich.py) instead of hashtag-derived stats.
-# Enriched stats are much more accurate because they sample 30+ videos per
-# creator directly from their profile. Falls back to hashtag stats if no
-# enrichment data exists for a creator.
 USE_ENRICHED = True
 # ----------------
 
@@ -208,6 +207,11 @@ def main():
         if er < MIN_ER:
             continue
 
+        if REGION_FILTER:
+            allowed = {r.strip().upper() for r in REGION_FILTER.split(",") if r.strip()}
+            if (meta["region"] or "").upper() not in allowed:
+                continue
+
         email = (meta["email"] or "").strip()
         if EMAIL_ONLY and not email:
             continue
@@ -288,7 +292,8 @@ def main():
     print(f"  with YouTube:   {with_yt:,}")
     print(f"  with website:   {with_site:,}")
     print(f"\nFilters:          median {MEDIAN_MIN:,}-{MEDIAN_MAX:,} views, "
-          f"followers {FOLLOWER_MIN:,}-{FOLLOWER_MAX:,}, ER>={MIN_ER*100:.1f}%")
+          f"followers {FOLLOWER_MIN:,}-{FOLLOWER_MAX:,}, ER>={MIN_ER*100:.1f}%"
+          f"{', region=' + REGION_FILTER if REGION_FILTER else ''}")
     print(f"Export:           {OUT_CSV}")
 
     niche_counts = Counter(c["niche"] for c in kept)
